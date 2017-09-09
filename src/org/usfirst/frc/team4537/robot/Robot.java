@@ -49,13 +49,13 @@ public class Robot extends SampleRobot {
 	Talon motorRB = new Talon(1);
 	Victor motorBAS = new Victor(4);
 
-	int BASBallIn=2, BASBallOut=3, shoot=1, shoot2=4;
-	int BASStickAxis = 0;
-	double BASMotorSpeed = 0.5;
+	int BASBallIn=2, BASBallOut=3, shoot=1, shoot2=11, shootRst=4;
+	int BASStickAxis = 1;
+	double BASMotorSpeed = 0.9;
 
 	RobotDrive driveBase = new RobotDrive(motorLB, motorLF, motorRB, motorRF);
 
-	boolean bShoot=false, bBASL=false, bBASR=false, bShoot2=false;
+	boolean bShoot=false, bHasShot=false, bBASL=false, bBASR=false, bShootRst=false;
 	boolean vButtonBASL=false, vButtonBASR=false;
 	long timer0 = 0;
 
@@ -126,39 +126,44 @@ public class Robot extends SampleRobot {
 		driveBase.setSafetyEnabled(true);
 		while (isOperatorControl() && isEnabled()) {
 
-			driveBase.tankDrive(stickL, stickR, true);
+			if(stickL.getName().equalsIgnoreCase("Controller (XBOX 360 For Windows)")) {
+				driveBase.tankDrive(-stickL.getRawAxis(1), -stickL.getRawAxis(5));
+				System.out.println("L: " + stickL.getRawAxis(1) + " R: " + stickL.getRawAxis(5));
+			}
+			else {
+				driveBase.tankDrive(-stickL.getY(), -stickR.getY(), true);
+			}
 
-			if(controller.getRawAxis(BASStickAxis) >= 0.5) vButtonBASL = true;
+			if(controller.getRawAxis(BASStickAxis) >= 0.67) vButtonBASL = true;
 			else vButtonBASL = false;
-			if(controller.getRawAxis(BASStickAxis) <= -0.5) vButtonBASR = true;
+			if(controller.getRawAxis(BASStickAxis) <= -0.67) vButtonBASR = true;
 			else vButtonBASR = false;
 
-
-			if(controller.getRawButton(shoot) && !bShoot && ((System.currentTimeMillis() >= timer0+1.5e3) && timer0!=0)) {
+			if(controller.getRawButton(shoot) && controller.getRawButton(shoot2) && !bShoot && BASSwitch.get()) {
 				bShoot = true;
+				bHasShot = true;
 				shooterSolenoid.set(true);
 			}
 			else if(!controller.getRawButton(shoot)) bShoot = false;
 
-			if(controller.getRawButton(shoot2) && !bShoot2) {
-				bShoot2 = true;
+			if(controller.getRawButton(shootRst) && !bShootRst) {
+				bShootRst = true;
+				bHasShot = false;
 				shooterSolenoid.set(false);
 			}
-			else if(!controller.getRawButton(shoot2)) bShoot2 = false;
+			else if(!controller.getRawButton(shootRst)) bShootRst = false;
 
-			if(vButtonBASL && !bBASL) {
+			if(vButtonBASL && !bBASL && !bHasShot) {
 				bBASL = true;
 				timer0 = System.currentTimeMillis();
-				System.out.println("HERE1");
-//				BASSolenoid.set(DoubleSolenoid.Value.kForward);
+				BASSolenoid.set(DoubleSolenoid.Value.kForward);
 			}
 			else if(!vButtonBASL) bBASL = false;
 
 			if(vButtonBASR && !bBASR) {
 				bBASR = true;
 				timer0 = 0;
-				System.out.println("HERE2");
-//				BASSolenoid.set(DoubleSolenoid.Value.kReverse);
+				BASSolenoid.set(DoubleSolenoid.Value.kReverse);
 			}
 			else if(!vButtonBASR) bBASR = false;
 
@@ -167,7 +172,6 @@ public class Robot extends SampleRobot {
 			else motorBAS.set(0);
 
 
-			System.out.println(controller.getRawAxis(BASStickAxis));
 			SmartDashboard.putBoolean("DB/LED 0", BASSwitch.get());
 			SmartDashboard.putString("DB/String 0", "Pressure:");
 			SmartDashboard.putString("DB/String 5", Double.toString(pressure.getValue()/1+0)+"psi"); //Calibration /Value and +Value
