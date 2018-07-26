@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -48,6 +49,8 @@ public class Robot extends SampleRobot {
 	Talon motorRF = new Talon(0);
 	Talon motorRB = new Talon(1);
 	Victor motorBAS = new Victor(4);
+	
+	PowerDistributionPanel pdp;
 
 	int BASBallIn=2, BASBallOut=3, shoot=1, shoot2=11, shootRst=4;
 	int BASStickAxis = 1;
@@ -63,12 +66,14 @@ public class Robot extends SampleRobot {
 	//	final String customAuto = "My Auto";
 	//	SendableChooser<String> chooser = new SendableChooser<>();
 
-	public Robot() {
+	public Robot() {		
 		driveBase.setExpiration(0.1);
 	}
 
 	@Override
 	public void robotInit() {
+		pdp = new PowerDistributionPanel();
+		
 		motorLF.setInverted(false);
 		motorLF.setExpiration(0.1);
 		motorLB.setInverted(false);
@@ -125,13 +130,14 @@ public class Robot extends SampleRobot {
 	public void operatorControl() {
 		driveBase.setSafetyEnabled(true);
 		while (isOperatorControl() && isEnabled()) {
+			debug();
 
-			if(stickL.getName().equalsIgnoreCase("Controller (XBOX 360 For Windows)")) {
+			if(stickL.getName().contains("Xbox 360")) {
 				driveBase.tankDrive(-stickL.getRawAxis(1), -stickL.getRawAxis(5));
 				System.out.println("L: " + stickL.getRawAxis(1) + " R: " + stickL.getRawAxis(5));
 			}
 			else {
-				driveBase.tankDrive(-stickL.getY(), -stickR.getY(), true);
+				driveBase.tankDrive(-stickL.getY()*0.75, -stickR.getY()*0.75, true);
 			}
 
 			if(controller.getRawAxis(BASStickAxis) >= 0.67) vButtonBASL = true;
@@ -174,7 +180,7 @@ public class Robot extends SampleRobot {
 
 			SmartDashboard.putBoolean("DB/LED 0", BASSwitch.get());
 			SmartDashboard.putString("DB/String 0", "Pressure:");
-			SmartDashboard.putString("DB/String 5", Double.toString(pressure.getValue()/1+0)+"psi"); //Calibration /Value and +Value
+			SmartDashboard.putString("DB/String 5", Double.toString(250*(pressure.getValue()/37.2)-25)+"psi"); //Calibration /Value and +Value
 			
 
 			Timer.delay(0.005); // wait for a motor update time
@@ -186,5 +192,25 @@ public class Robot extends SampleRobot {
 	 */
 	@Override
 	public void test() {
+	}
+	
+	@Override
+	public void disabled() {
+		debug();
+	}
+	
+	private void debug() {
+//		SmartDashboard.putData(pdp);
+//		System.out.println(pdp);
+//		SmartDashboard.putData("Compressor", compressor);
+		SmartDashboard.putNumber("CompressorCurrent", compressor.getCompressorCurrent());
+		SmartDashboard.putNumber("PDP-12 (L)", pdp.getCurrent(12));
+		SmartDashboard.putNumber("PDP-13 (R)", pdp.getCurrent(13));
+		SmartDashboard.putNumber("PDP-14 (L)", pdp.getCurrent(14));
+		SmartDashboard.putNumber("PDP-15 (R)", pdp.getCurrent(15));
+		SmartDashboard.putNumber("PDP-07 (B)", pdp.getCurrent(7));
+		SmartDashboard.putNumber("PDP-TOTAL", pdp.getTotalCurrent());
+		SmartDashboard.putString("PDP-ENERGY", Double.toString(Math.round(pdp.getTotalEnergy()/10.0)/100.0)+"kJ");
+		System.out.println(pdp.getCurrent(12));
 	}
 }
